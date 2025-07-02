@@ -1,90 +1,221 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Omvärldskollen</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Omvärldskollen</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: #f0f0f0;
+      font-family: system-ui, sans-serif;
+      background: #f8f9fa;
+      margin: 0;
       padding: 2rem;
-      max-width: 800px;
-      margin: auto;
+      color: #333;
     }
-    h2 { color: #0077cc; }
-    label { display: block; margin-top: 1rem; font-weight: bold; }
-    input, textarea {
+
+    h1, h2 {
+      text-align: center;
+      color: #0077cc;
+    }
+
+    .news-item {
+      background: white;
+      border-radius: 10px;
+      padding: 1rem;
+      margin: 1rem auto;
+      max-width: 700px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    .news-item h3 {
+      margin-top: 0;
+      color: #005599;
+    }
+
+    .news-item a {
+      text-decoration: none;
+      color: #0066cc;
+    }
+
+    .news-item a:hover {
+      text-decoration: underline;
+    }
+
+    .admin-section {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1rem;
+      max-width: 700px;
+      margin: 3rem auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    label, input, textarea {
+      display: block;
+      margin: 0.5rem 0;
       width: 100%;
-      padding: 0.5rem;
-      margin-top: 0.25rem;
     }
+
     button {
-      margin-top: 1rem;
       padding: 0.5rem 1rem;
+      margin-top: 0.5rem;
       background-color: #0077cc;
       color: white;
       border: none;
+      border-radius: 5px;
       cursor: pointer;
     }
-    #login-container, #form-container {
+
+    button:hover {
+      background-color: #005fa3;
+    }
+
+    #loading {
+      text-align: center;
+      font-style: italic;
+    }
+
+    .hidden {
       display: none;
+    }
+
+    .category-block {
+      border-top: 1px solid #ccc;
+      padding-top: 1rem;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
-  <h2>Admin - Omvärldskollen</h2>
 
-  <div id="login-container">
-    <label for="password">Lösenord:</label>
-    <input type="password" id="password">
-    <button onclick="checkPassword()">Logga in</button>
-  </div>
+  <h1>AI-sammanfattade nyheter</h1>
+  <div id="loading">Laddar nyheter...</div>
+  <div id="news-container"></div>
 
-  <div id="form-container">
-    <form onsubmit="saveSettings(event)">
-      <label for="category">Kategori:</label>
-      <input type="text" id="category" required>
+  <div class="admin-section">
+    <h2>Admin - Omvärldskollen</h2>
+    <div id="login-form">
+      <label for="password">Lösenord:</label>
+      <input type="password" id="password" />
+      <button onclick="login()">Logga in</button>
+    </div>
 
-      <label for="keywords">Nyckelord (kommaseparerade):</label>
-      <input type="text" id="keywords" required>
-
-      <label for="feeds">RSS-länkar (kommaseparerade):</label>
-      <textarea id="feeds" required></textarea>
-
-      <button type="submit">Lägg till kategori</button>
-    </form>
-    <pre id="status"></pre>
+    <div id="settings-section" class="hidden">
+      <h3>Inställningar för bevakning</h3>
+      <div id="settings-container"></div>
+      <button onclick="addCategory()">Lägg till kategori</button>
+      <button onclick="saveSettings()">Spara ändringar</button>
+    </div>
   </div>
 
   <script>
-    const ADMIN_PASSWORD = "hemligt123"; // Ändra detta senare till något starkt
+    const backendURL = "https://atw-backend.onrender.com";
+    const adminPassword = "hemligt"; // byt detta till ett säkrare senare
 
-    document.getElementById("login-container").style.display = "block";
+    async function loadNews() {
+      try {
+        const response = await fetch(`${backendURL}/api/news`);
+        const data = await response.json();
+        const container = document.getElementById("news-container");
+        document.getElementById("loading").style.display = "none";
 
-    function checkPassword() {
-      const pw = document.getElementById("password").value;
-      if (pw === ADMIN_PASSWORD) {
-        document.getElementById("login-container").style.display = "none";
-        document.getElementById("form-container").style.display = "block";
-      } else {
-        alert("Fel lösenord!");
+        if (!data || data.length === 0) {
+          container.innerHTML = "<p>Inga nyheter hittades.</p>";
+          return;
+        }
+
+        data.forEach(item => {
+          const div = document.createElement("div");
+          div.className = "news-item";
+          div.innerHTML = `
+            <h3>${item.title}</h3>
+            <p>${item.summary}</p>
+            <p><a href="${item.link}" target="_blank">Läs mer</a></p>
+          `;
+          container.appendChild(div);
+        });
+      } catch (err) {
+        document.getElementById("loading").innerText = "Kunde inte ladda nyheter 😢";
       }
     }
 
-    async function saveSettings(event) {
-      event.preventDefault();
-
-      const category = document.getElementById("category").value.trim();
-      const keywords = document.getElementById("keywords").value.split(",").map(k => k.trim());
-      const feeds = document.getElementById("feeds").value.split(",").map(f => f.trim());
-
-      const data = { category, keywords, feeds };
-
-      // Just nu visar vi bara i ett <pre>-element (ingen backendkoppling ännu)
-      document.getElementById("status").innerText = JSON.stringify(data, null, 2);
-      alert("Kategori sparad lokalt (för demo)");
+    async function login() {
+      const pwd = document.getElementById("password").value;
+      if (pwd === adminPassword) {
+        document.getElementById("login-form").classList.add("hidden");
+        document.getElementById("settings-section").classList.remove("hidden");
+        loadSettings();
+      } else {
+        alert("Fel lösenord");
+      }
     }
+
+    function loadSettings() {
+      fetch(`${backendURL}/api/settings`)
+        .then(res => res.json())
+        .then(data => {
+          const container = document.getElementById("settings-container");
+          container.innerHTML = "";
+          data.forEach((cat, index) => {
+            const div = document.createElement("div");
+            div.className = "category-block";
+            div.innerHTML = `
+              <label>Kategori:</label>
+              <input type="text" value="${cat.category}" data-index="${index}" data-type="category"/>
+              <label>Nyckelord (komma-separerade):</label>
+              <input type="text" value="${cat.keywords.join(', ')}" data-index="${index}" data-type="keywords"/>
+              <label>Bevakade sidor (en per rad):</label>
+              <textarea rows="4" data-index="${index}" data-type="feeds">${cat.feeds.join('\n')}</textarea>
+            `;
+            container.appendChild(div);
+          });
+        });
+    }
+
+    function addCategory() {
+      const container = document.getElementById("settings-container");
+      const index = container.children.length;
+      const div = document.createElement("div");
+      div.className = "category-block";
+      div.innerHTML = `
+        <label>Kategori:</label>
+        <input type="text" data-index="${index}" data-type="category"/>
+        <label>Nyckelord (komma-separerade):</label>
+        <input type="text" data-index="${index}" data-type="keywords"/>
+        <label>Bevakade sidor (en per rad):</label>
+        <textarea rows="4" data-index="${index}" data-type="feeds"></textarea>
+      `;
+      container.appendChild(div);
+    }
+
+    function saveSettings() {
+      const blocks = document.querySelectorAll(".category-block");
+      const settings = [];
+
+      blocks.forEach(block => {
+        const index = block.querySelector("input").dataset.index;
+        const category = block.querySelector('input[data-type="category"]').value;
+        const keywords = block.querySelector('input[data-type="keywords"]').value.split(',').map(k => k.trim());
+        const feeds = block.querySelector('textarea[data-type="feeds"]').value.split('\n').map(f => f.trim());
+        settings.push({ category, keywords, feeds });
+      });
+
+      fetch(`${backendURL}/api/settings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(settings)
+      }).then(res => {
+        if (res.ok) {
+          alert("Inställningar sparade!");
+        } else {
+          alert("Fel vid sparande.");
+        }
+      });
+    }
+
+    loadNews();
   </script>
 </body>
 </html>
