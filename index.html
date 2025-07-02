@@ -1,129 +1,90 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Omvärldskollen</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Omvärldskollen</title>
   <style>
     body {
-      font-family: system-ui, sans-serif;
-      background: #f8f9fa;
-      margin: 0;
+      font-family: sans-serif;
+      background: #f0f0f0;
       padding: 2rem;
-      color: #333;
+      max-width: 800px;
+      margin: auto;
     }
-
-    h1 {
-      text-align: center;
-      color: #0077cc;
+    h2 { color: #0077cc; }
+    label { display: block; margin-top: 1rem; font-weight: bold; }
+    input, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
     }
-
-    .news-item, .settings-item {
-      background: white;
-      border-radius: 10px;
-      padding: 1rem;
-      margin: 1rem auto;
-      max-width: 700px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    button {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      cursor: pointer;
     }
-
-    .news-item h3, .settings-item h3 {
-      margin-top: 0;
-      color: #005599;
-    }
-
-    .news-item a {
-      text-decoration: none;
-      color: #0066cc;
-    }
-
-    .news-item a:hover {
-      text-decoration: underline;
-    }
-
-    #loading, #settings-loading {
-      text-align: center;
-      font-style: italic;
-    }
-
-    h2 {
-      text-align: center;
-      color: #333;
-      margin-top: 3rem;
+    #login-container, #form-container {
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h1>AI-sammanfattade nyheter</h1>
-  <div id="loading">Laddar nyheter...</div>
-  <div id="news-container"></div>
+  <h2>Admin - Omvärldskollen</h2>
 
-  <h2>Inställningar för bevakning</h2>
-  <div id="settings-loading">Laddar inställningar...</div>
-  <div id="settings-container"></div>
+  <div id="login-container">
+    <label for="password">Lösenord:</label>
+    <input type="password" id="password">
+    <button onclick="checkPassword()">Logga in</button>
+  </div>
+
+  <div id="form-container">
+    <form onsubmit="saveSettings(event)">
+      <label for="category">Kategori:</label>
+      <input type="text" id="category" required>
+
+      <label for="keywords">Nyckelord (kommaseparerade):</label>
+      <input type="text" id="keywords" required>
+
+      <label for="feeds">RSS-länkar (kommaseparerade):</label>
+      <textarea id="feeds" required></textarea>
+
+      <button type="submit">Lägg till kategori</button>
+    </form>
+    <pre id="status"></pre>
+  </div>
 
   <script>
-    async function loadNews() {
-      try {
-        const response = await fetch('https://atw-backend.onrender.com/api/news');
-        const data = await response.json();
-        const container = document.getElementById("news-container");
-        const loading = document.getElementById("loading");
-        loading.style.display = "none";
+    const ADMIN_PASSWORD = "hemligt123"; // Ändra detta senare till något starkt
 
-        if (!data || data.length === 0) {
-          container.innerHTML = "<p>Inga nyheter hittades.</p>";
-          return;
-        }
+    document.getElementById("login-container").style.display = "block";
 
-        data.forEach(item => {
-          const div = document.createElement("div");
-          div.className = "news-item";
-          div.innerHTML = `
-            <h3>${item.title}</h3>
-            <p>${item.summary}</p>
-            <p><a href="${item.link}" target="_blank">Läs mer</a></p>
-          `;
-          container.appendChild(div);
-        });
-      } catch (err) {
-        document.getElementById("loading").innerText = "Kunde inte ladda nyheter 😢";
-        console.error("Fel vid hämtning av nyheter:", err);
+    function checkPassword() {
+      const pw = document.getElementById("password").value;
+      if (pw === ADMIN_PASSWORD) {
+        document.getElementById("login-container").style.display = "none";
+        document.getElementById("form-container").style.display = "block";
+      } else {
+        alert("Fel lösenord!");
       }
     }
 
-    async function loadSettings() {
-      try {
-        const response = await fetch('https://atw-backend.onrender.com/api/settings');
-        const data = await response.json();
-        const container = document.getElementById("settings-container");
-        const loading = document.getElementById("settings-loading");
-        loading.style.display = "none";
+    async function saveSettings(event) {
+      event.preventDefault();
 
-        if (!data || data.length === 0) {
-          container.innerHTML = "<p>Inga inställningar hittades.</p>";
-          return;
-        }
+      const category = document.getElementById("category").value.trim();
+      const keywords = document.getElementById("keywords").value.split(",").map(k => k.trim());
+      const feeds = document.getElementById("feeds").value.split(",").map(f => f.trim());
 
-        data.forEach(config => {
-          const div = document.createElement("div");
-          div.className = "settings-item";
-          div.innerHTML = `
-            <h3>${config.category}</h3>
-            <p><strong>Nyckelord:</strong> ${config.keywords.join(", ")}</p>
-            <p><strong>Bevakade sidor:</strong></p>
-            <ul>${config.feeds.map(f => `<li><a href="${f}" target="_blank">${f}</a></li>`).join('')}</ul>
-          `;
-          container.appendChild(div);
-        });
-      } catch (err) {
-        document.getElementById("settings-loading").innerText = "Kunde inte ladda inställningar 😢";
-        console.error("Fel vid hämtning av inställningar:", err);
-      }
+      const data = { category, keywords, feeds };
+
+      // Just nu visar vi bara i ett <pre>-element (ingen backendkoppling ännu)
+      document.getElementById("status").innerText = JSON.stringify(data, null, 2);
+      alert("Kategori sparad lokalt (för demo)");
     }
-
-    loadNews();
-    loadSettings();
   </script>
 </body>
 </html>
