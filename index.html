@@ -186,11 +186,7 @@
     }
 
     function addCategory() {
-      settings.push({
-        category: "",
-        keywords: [],
-        feeds: []
-      });
+      settings.push({ category: "", keywords: [], feeds: [] });
       renderSettings();
     }
 
@@ -224,24 +220,32 @@
       const container = document.getElementById("checkboxes");
       if (!container) return;
       container.innerHTML = "";
-      settings.forEach((cat, index) => {
+      settings.forEach(cat => {
         const label = document.createElement("label");
         label.innerHTML = `<input type="checkbox" name="category" value="${cat.category}" /> ${cat.category}`;
         container.appendChild(label);
       });
     }
 
-    document.getElementById("subscribe-form").addEventListener("submit", function(e) {
+    document.getElementById("subscribe-form").addEventListener("submit", async function(e) {
       e.preventDefault();
       const name = document.getElementById("name").value;
       const email = document.getElementById("email").value;
       const selected = [...document.querySelectorAll("input[name='category']:checked")].map(cb => cb.value);
 
-      // Just nu loggar vi bara, i nästa steg kopplar vi till backend + nyhetsbrev
-      console.log("Ny prenumerant:", { name, email, selected });
-
-      document.getElementById("subscribe-message").innerText = "Tack! Du är nu anmäld.";
-      document.getElementById("subscribe-form").reset();
+      try {
+        const res = await fetch("https://atw-backend.onrender.com/api/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, categories: selected })
+        });
+        const result = await res.json();
+        document.getElementById("subscribe-message").innerText = result.message || "Tack! Du är nu anmäld.";
+        document.getElementById("subscribe-form").reset();
+      } catch (err) {
+        document.getElementById("subscribe-message").innerText = "Fel vid prenumeration.";
+        console.error(err);
+      }
     });
 
     loadNews();
