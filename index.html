@@ -12,12 +12,10 @@
       padding: 2rem;
       color: #333;
     }
-
     h1, h2 {
       text-align: center;
       color: #0077cc;
     }
-
     .news-item, .category-box {
       background: white;
       border-radius: 10px;
@@ -26,49 +24,44 @@
       max-width: 700px;
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
-
     .news-item h3 {
       margin-top: 0;
       color: #005599;
     }
-
     .news-item a {
       text-decoration: none;
       color: #0066cc;
     }
-
     .news-item a:hover {
       text-decoration: underline;
     }
-
     #loading, #login-message {
       text-align: center;
       font-style: italic;
     }
-
-    .hidden {
-      display: none;
-    }
-
-    input, textarea, button {
+    .hidden { display: none; }
+    input, textarea, select, button {
       font-size: 1em;
       margin: 0.3em 0;
       padding: 0.5em;
       width: 100%;
       box-sizing: border-box;
     }
-
     .admin-controls {
       max-width: 700px;
       margin: 2rem auto;
     }
-
     .remove-btn {
       background: #ffdddd;
       color: #990000;
       border: 1px solid #cc0000;
       margin-top: 0.5em;
       cursor: pointer;
+    }
+    textarea.newsletter-preview {
+      height: 200px;
+      font-family: monospace;
+      background: #f0f0f0;
     }
   </style>
 </head>
@@ -91,27 +84,35 @@
       <div id="category-list"></div>
       <button onclick="addCategory()">Lägg till kategori</button>
       <button onclick="saveSettings()">Spara ändringar</button>
+
+      <hr />
+      <h2>Nyhetsbrevsutkast</h2>
+      <label for="category-select">Välj kategori:</label>
+      <select id="category-select"></select>
+      <button onclick="generateNewsletter()">Generera nyhetsbrevsutkast</button>
+      <textarea class="newsletter-preview" id="newsletter-preview" readonly></textarea>
     </div>
   </div>
 
   <script>
     let settings = [];
+    let newsData = [];
     let authToken = "";
 
     async function loadNews() {
       try {
         const response = await fetch('https://atw-backend.onrender.com/api/news');
-        const data = await response.json();
+        newsData = await response.json();
         const container = document.getElementById("news-container");
         const loading = document.getElementById("loading");
         loading.style.display = "none";
 
-        if (!data || data.length === 0) {
+        if (!newsData || newsData.length === 0) {
           container.innerHTML = "<p>Inga nyheter hittades.</p>";
           return;
         }
 
-        data.forEach(item => {
+        newsData.forEach(item => {
           const div = document.createElement("div");
           div.className = "news-item";
           div.innerHTML = `
@@ -136,6 +137,7 @@
         document.getElementById("login-form").classList.add("hidden");
         document.getElementById("admin-panel").classList.remove("hidden");
         renderSettings();
+        populateCategoryDropdown();
       } catch (err) {
         document.getElementById("login-message").innerText = "Fel vid inloggning eller laddning av inställningar.";
       }
@@ -160,6 +162,17 @@
       });
     }
 
+    function populateCategoryDropdown() {
+      const dropdown = document.getElementById("category-select");
+      dropdown.innerHTML = "";
+      settings.forEach(cat => {
+        const option = document.createElement("option");
+        option.value = cat.category;
+        option.textContent = cat.category;
+        dropdown.appendChild(option);
+      });
+    }
+
     function addCategory() {
       settings.push({
         category: "",
@@ -167,6 +180,7 @@
         feeds: []
       });
       renderSettings();
+      populateCategoryDropdown();
     }
 
     function removeCategory(index) {
@@ -174,6 +188,7 @@
       if (confirmDelete) {
         settings.splice(index, 1);
         renderSettings();
+        populateCategoryDropdown();
       }
     }
 
@@ -193,6 +208,20 @@
         alert("Kunde inte spara inställningar.");
         console.error(err);
       }
+    }
+
+    function generateNewsletter() {
+      const selectedCategory = document.getElementById("category-select").value;
+      const filtered = newsData.filter(item =>
+        item.summary.toLowerCase().includes(selectedCategory.toLowerCase())
+        || item.title.toLowerCase().includes(selectedCategory.toLowerCase())
+      );
+      let result = `📰 Nyhetsbrev: ${selectedCategory}\n\n`;
+      filtered.forEach((item, idx) => {
+        result += `${idx + 1}. ${item.title}\n${item.summary}\n${item.link}\n\n`;
+      });
+      if (filtered.length === 0) result += "Inga nyheter hittades för denna kategori.";
+      document.getElementById("newsletter-preview").value = result.trim();
     }
 
     loadNews();
