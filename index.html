@@ -78,28 +78,12 @@
   </style>
 </head>
 <body>
+  <!-- Nyheter först -->
   <h1>AI-sammanfattade nyheter</h1>
   <div id="loading">Laddar nyheter...</div>
   <div id="news-container"></div>
 
-  <div class="admin-controls">
-    <h2>Admin - Omvärldskollen</h2>
-    <div id="login-form">
-      <label for="password">Lösenord:</label>
-      <input type="password" id="password" />
-      <button onclick="login()">Logga in</button>
-      <p id="login-message"></p>
-    </div>
-
-    <div id="admin-panel" class="hidden">
-      <h2>Inställningar för bevakning</h2>
-      <div id="category-list"></div>
-      <button onclick="addCategory()">Lägg till kategori</button>
-      <button onclick="saveSettings()">Spara ändringar</button>
-    </div>
-  </div>
-
-  <!-- Prenumerationsformulär -->
+  <!-- Prenumerationsformulär i mitten -->
   <div class="form-box">
     <h2>Prenumerera på nyhetsbrev</h2>
     <form id="subscribe-form">
@@ -115,6 +99,24 @@
       <button type="submit">Prenumerera</button>
     </form>
     <p id="subscribe-message"></p>
+  </div>
+
+  <!-- Admin längst ner -->
+  <div class="admin-controls">
+    <h2>Admin - Omvärldskollen</h2>
+    <div id="login-form">
+      <label for="password">Lösenord:</label>
+      <input type="password" id="password" />
+      <button onclick="login()">Logga in</button>
+      <p id="login-message"></p>
+    </div>
+
+    <div id="admin-panel" class="hidden">
+      <h2>Inställningar för bevakning</h2>
+      <div id="category-list"></div>
+      <button onclick="addCategory()">Lägg till kategori</button>
+      <button onclick="saveSettings()">Spara ändringar</button>
+    </div>
   </div>
 
   <script>
