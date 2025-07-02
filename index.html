@@ -152,6 +152,16 @@
       }
     }
 
+    async function loadSettings() {
+      try {
+        const res = await fetch("https://atw-backend.onrender.com/api/settings");
+        settings = await res.json();
+        renderCheckboxes(); // För prenumerationsformuläret
+      } catch (err) {
+        console.error("Kunde inte ladda inställningar:", err);
+      }
+    }
+
     async function login() {
       const password = document.getElementById("password").value;
       authToken = password;
@@ -161,7 +171,6 @@
         document.getElementById("login-form").classList.add("hidden");
         document.getElementById("admin-panel").classList.remove("hidden");
         renderSettings();
-        renderCheckboxes();
       } catch (err) {
         document.getElementById("login-message").innerText = "Fel vid inloggning eller laddning av inställningar.";
       }
@@ -184,7 +193,17 @@
         `;
         container.appendChild(div);
       });
-      renderCheckboxes();
+    }
+
+    function renderCheckboxes() {
+      const container = document.getElementById("checkboxes");
+      if (!container) return;
+      container.innerHTML = "";
+      settings.forEach(cat => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="checkbox" name="category" value="${cat.category}" /> ${cat.category}`;
+        container.appendChild(label);
+      });
     }
 
     function addCategory() {
@@ -218,17 +237,6 @@
       }
     }
 
-    function renderCheckboxes() {
-      const container = document.getElementById("checkboxes");
-      if (!container) return;
-      container.innerHTML = "";
-      settings.forEach(cat => {
-        const label = document.createElement("label");
-        label.innerHTML = `<input type="checkbox" name="category" value="${cat.category}" /> ${cat.category}`;
-        container.appendChild(label);
-      });
-    }
-
     document.getElementById("subscribe-form").addEventListener("submit", async function(e) {
       e.preventDefault();
       const name = document.getElementById("name").value;
@@ -251,6 +259,7 @@
     });
 
     loadNews();
+    loadSettings();
   </script>
 </body>
 </html>
