@@ -62,6 +62,14 @@
       max-width: 700px;
       margin: 2rem auto;
     }
+
+    .remove-btn {
+      background: #ffdddd;
+      color: #990000;
+      border: 1px solid #cc0000;
+      margin-top: 0.5em;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -146,6 +154,7 @@
           <input type="text" value="${cat.keywords.join(", ")}" onchange="settings[${index}].keywords = this.value.split(',').map(k => k.trim())" />
           <label>Webbadresser (kommaseparerat):</label>
           <textarea onchange="settings[${index}].feeds = this.value.split(',').map(f => f.trim())">${cat.feeds.join(", ")}</textarea>
+          <button class="remove-btn" onclick="removeCategory(${index})">Ta bort denna kategori</button>
         `;
         container.appendChild(div);
       });
@@ -160,6 +169,14 @@
       renderSettings();
     }
 
+    function removeCategory(index) {
+      const confirmDelete = confirm("Vill du verkligen ta bort denna kategori?");
+      if (confirmDelete) {
+        settings.splice(index, 1);
+        renderSettings();
+      }
+    }
+
     async function saveSettings() {
       try {
         const res = await fetch("https://atw-backend.onrender.com/api/update-settings", {
@@ -171,7 +188,7 @@
           body: JSON.stringify(settings)
         });
         const data = await res.json();
-        alert(data.message || "Sparat!");
+        alert(data.message || "Inställningar sparade!");
       } catch (err) {
         alert("Kunde inte spara inställningar.");
         console.error(err);
