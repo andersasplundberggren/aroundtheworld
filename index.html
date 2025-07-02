@@ -18,7 +18,7 @@
       color: #0077cc;
     }
 
-    .news-item, .category-box, .form-box {
+    .news-item, .category-box, .form-box, .subscriber-box {
       background: white;
       border-radius: 10px;
       padding: 1rem;
@@ -78,12 +78,10 @@
   </style>
 </head>
 <body>
-  <!-- Nyheter först -->
   <h1>AI-sammanfattade nyheter</h1>
   <div id="loading">Laddar nyheter...</div>
   <div id="news-container"></div>
 
-  <!-- Prenumerationsformulär i mitten -->
   <div class="form-box">
     <h2>Prenumerera på nyhetsbrev</h2>
     <form id="subscribe-form">
@@ -101,7 +99,6 @@
     <p id="subscribe-message"></p>
   </div>
 
-  <!-- Admin längst ner -->
   <div class="admin-controls">
     <h2>Admin - Omvärldskollen</h2>
     <div id="login-form">
@@ -116,6 +113,9 @@
       <div id="category-list"></div>
       <button onclick="addCategory()">Lägg till kategori</button>
       <button onclick="saveSettings()">Spara ändringar</button>
+
+      <h2>Prenumeranter</h2>
+      <div id="subscriber-list"></div>
     </div>
   </div>
 
@@ -156,7 +156,7 @@
       try {
         const res = await fetch("https://atw-backend.onrender.com/api/settings");
         settings = await res.json();
-        renderCheckboxes(); // För prenumerationsformuläret
+        renderCheckboxes();
       } catch (err) {
         console.error("Kunde inte ladda inställningar:", err);
       }
@@ -171,6 +171,7 @@
         document.getElementById("login-form").classList.add("hidden");
         document.getElementById("admin-panel").classList.remove("hidden");
         renderSettings();
+        renderSubscribers();
       } catch (err) {
         document.getElementById("login-message").innerText = "Fel vid inloggning eller laddning av inställningar.";
       }
@@ -192,17 +193,6 @@
           <button class="remove-btn" onclick="removeCategory(${index})">Ta bort denna kategori</button>
         `;
         container.appendChild(div);
-      });
-    }
-
-    function renderCheckboxes() {
-      const container = document.getElementById("checkboxes");
-      if (!container) return;
-      container.innerHTML = "";
-      settings.forEach(cat => {
-        const label = document.createElement("label");
-        label.innerHTML = `<input type="checkbox" name="category" value="${cat.category}" /> ${cat.category}`;
-        container.appendChild(label);
       });
     }
 
@@ -234,6 +224,66 @@
       } catch (err) {
         alert("Kunde inte spara inställningar.");
         console.error(err);
+      }
+    }
+
+    function renderCheckboxes() {
+      const container = document.getElementById("checkboxes");
+      if (!container) return;
+      container.innerHTML = "";
+      settings.forEach(cat => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="checkbox" name="category" value="${cat.category}" /> ${cat.category}`;
+        container.appendChild(label);
+      });
+    }
+
+    async function renderSubscribers() {
+      try {
+        const res = await fetch("https://atw-backend.onrender.com/api/subscribers", {
+          headers: { "Authorization": authToken }
+        });
+        const list = await res.json();
+        const container = document.getElementById("subscriber-list");
+        container.innerHTML = "";
+        list.forEach((sub, index) => {
+          const div = document.createElement("div");
+          div.className = "subscriber-box";
+          div.innerHTML = `
+            <strong>${sub.name}</strong><br>
+            <input value="${sub.email}" onchange="updateSubscriber(${index}, 'email', this.value)" />
+            <label>Kategorier:</label>
+            <input value="${sub.categories.join(', ')}" onchange="updateSubscriber(${index}, 'categories', this.value.split(',').map(c => c.trim()))" />
+            <button class="remove-btn" onclick="deleteSubscriber(${index}, '${sub.email}')">Ta bort</button>
+          `;
+          container.appendChild(div);
+        });
+        window.subscribers = list;
+      } catch (err) {
+        console.error("Kunde inte ladda prenumeranter:", err);
+      }
+    }
+
+    function updateSubscriber(index, field, value) {
+      window.subscribers[index][field] = value;
+    }
+
+    async function deleteSubscriber(index, email) {
+      if (!confirm("Ta bort prenumerant?")) return;
+      try {
+        const res = await fetch("https://atw-backend.onrender.com/api/delete-subscriber", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": authToken
+          },
+          body: JSON.stringify({ email })
+        });
+        const result = await res.json();
+        alert(result.message || "Prenumerant borttagen");
+        renderSubscribers();
+      } catch (err) {
+        alert("Kunde inte ta bort prenumerant.");
       }
     }
 
